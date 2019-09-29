@@ -83,7 +83,5 @@ protected function sendRequestThroughRouter($request)
 }
 ```
 
-根據命名我們就看出來了，前面處理的邏輯是跟 Middleware 相關的
-                ->through($this->app->shouldSkipMiddleware() ? [] : $this->middleware)，
-                ->through($this->app->shouldSkipMiddleware() ? [] : $this->middleware)這邊我們就不
-                ->through($this->app->shouldSkipMiddleware() ? [] : $this->middleware)
+根據命名我們就看出來了，前面處理的邏輯是跟 Middleware 相關的，這邊我們就不追蹤這段了，直接針對處理路由的部分處理，也就是 `$this->dispatchToRouter()` 。
+
