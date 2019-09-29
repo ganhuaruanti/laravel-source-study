@@ -103,4 +103,4 @@ $kernel->terminate($request, $response);
 
 接著，我們透過 `$response->send();` 回傳處理過後的回應。然後執行 `$kernel->terminate($request, $response);`
 
-到這裡，程式的邏輯就大致
+到這裡，我們就可以大致上掌握住程式的概略邏輯了。
