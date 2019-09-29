@@ -97,4 +97,10 @@ $kernel->terminate($request, $response);
 
 到這裡，我們可以確實地看到 Laravel 框架運作的步驟了。
 
-首先 ，
+首先，透過 `$kernel = $app->make(Illuminate\Contracts\Http\Kernel::class);`，我們建立了處理 `$request` 的核心 `$kernel`
+
+接著，透過 `Illuminate\Http\Request::capture()` 收到此次請求的 `$request` 之後，我們透過 `$kernel->handle()` 處理需求，並回傳 `$response` 物件。
+
+接著，我們透過 `$response->send();` 回傳處理過後的回應。然後執行 `$kernel->terminate($request, $response);`
+
+到這裡，程式的邏輯就大致
