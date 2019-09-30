@@ -1,6 +1,6 @@
 # 路由
 
-`$kernel = $app->make(Illuminate\Contracts\Http\Kernel::class);` 建立了一個
+`$kernel = $app->make(Illuminate\Contracts\Http\Kernel::class);` 這段是用來建立 `$kernel`
 
 結果我們發現，`Illuminate\Contracts\Http\Kernel` 是一個介面！
 
@@ -17,7 +17,7 @@ class Kernel implements KernelContract
 
 我們可以推測出，這個類別應該就是 `$app->make(Illuminate\Contracts\Http\Kernel::class)` 實際做出來的物件類別。
 
-另外，我們也可以透過改寫 `index.php` 來檢查這個事情
+這個推測正不正確呢？我們可以透過改寫 `index.php` 來檢查這個事情
 
 ```php
 $kernel = $app->make(Illuminate\Contracts\Http\Kernel::class);
@@ -32,7 +32,9 @@ object(App\Http\Kernel)#38 (7) { [...
 
 到 `App\Http\Kernel` 這個類別一看，他並沒有實作任何函式，但是 `App\Http\Kernel` 繼承了 `Illuminate\Foundation\Http\Kernel`，所以我們可以知道，實作 `handle()` 函式的實際位置，是在 `Illuminate\Foundation\Http\Kernel` 裡面。
 
-現在我們來看看 `Illuminate\Foundation\Http\Kernel` 這個類別。
+這樣的設計，通常是為了提升擴充的彈性。實作的邏輯在 `Illuminate\Foundation\Http\Kernel`，也就是一個框架內的程式碼。不過實際使用的物件卻是 `App\Http\Kernel` 類別的物件。如果之後想要擴充一些框架原本沒有支援的功能，我們只要在 `App\Http\Kernel` 加上這些功能就好。
+
+現在我們來看看 `Illuminate\Foundation\Http\Kernel` 這個類別怎麼實作 `handle()`。
 
 這個類別針對 `handle()` 的實作如下
 
@@ -61,7 +63,7 @@ public function handle($request)
 }
 ```
 
-看起來好像很多，不過我們可以發現到，這裡面大多數都是例外處理。`$request->enableHttpMethodParameterOverride();` 所做的事情是設置參數。
+看起來好像很多邏輯，不過我們可以發現到，這裡面大多數都是例外處理。`$request->enableHttpMethodParameterOverride();` 所做的事情是設置參數。
 
 所以真正的邏輯是在 `$response = $this->sendRequestThroughRouter($request);` 裡面。
 
@@ -93,6 +95,7 @@ public function dispatchToRoute(Request $request)
     return $this->runRoute($request, $this->findRoute($request));
 }
 ```
+這邊顧名思義，邏輯也很清楚了。透過 `findRoute()` 找到 `$request` 所對應的路由，然後再透過 `runRoute()` 實際運作邏輯，將
 
 ### `findRoute()`
 
@@ -165,7 +168,9 @@ protected function matchAgainstRoutes(array $routes, $request, $includingMethod 
 }
 ```
 
-前面用了 `Collection` 的 `partition()`，將
+前面用了 `Collection` 的 `partition()`，將路由分成 `$fallbacks` 和 `$routes` 兩塊。
+
+我們先看
 
 ```php
 public function matches(Request $request, $includingMethod = true)
@@ -315,5 +320,6 @@ public static function toResponse($request, $response)
 
 這邊就可以看到，這段邏輯是根據收到的 `$response` 具體來說是什麼物件所進行的後續處理。
 
-如果像我們測試常做的回傳純字串，那麼就會被包裝成 `SymfonyResponse` 然後回傳。
+如果像我們測試常做的，回傳純字串，那麼就會被包裝成 `SymfonyResponse` 然後回傳。
 
+如果是回傳 Model，那就會包裝成 `JsonResponse`
