@@ -38,7 +38,7 @@ object(App\Http\Kernel)#38 (7) { [...
 
 這個類別針對 `handle()` 的實作如下
 
-```
+```php
 public function handle($request)
 {
     try {
@@ -69,7 +69,7 @@ public function handle($request)
 
 我們到這個函式裡面再看看
 
-```
+```php
 protected function sendRequestThroughRouter($request)
 {
     $this->app->instance('request', $request);
