@@ -1,17 +1,5 @@
 # 開始
 
-## 取得 Laravel 原始碼
-
-要研究任何東西之前，總是要先有研究對象。
-
-那麼，要怎麼取得程式碼呢？
-
-在 github 發達的現在，取得框架的程式碼並不是什麼難事，我們只要 google 「laravel github」 就可以找到 Laravel 的 repo 位置了。
-
-然後，我們找到有關 Laravel 專案的 repository，在 https://github.com/laravel/laravel 。
-
-然後，我們在開發的資料夾下，執行 `git clone git@github.com:laravel/laravel.git` 這個指令，就可以把程式碼下載到指定的位置囉！
-
 ## 程式起始點
 
 研讀所有程式原始碼時，面對滿山滿谷的原始碼，通常都是先從程式的起始點開始找起。
