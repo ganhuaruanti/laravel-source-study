@@ -6,7 +6,7 @@
 
 * [前言](/preface.md)
 * 準備工作
-  * [安裝](/.md)
+  * [安裝](/install.md)
 * 程式基本邏輯
   * [開始](/start.md)
   * [路由](/routes.md)
