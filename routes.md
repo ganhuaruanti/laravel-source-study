@@ -1,5 +1,18 @@
 # 路由
 
+## 紀錄路由
+
+在尋找路由之前，我們先來研究一下，Laravel 是怎麼知道我們所撰寫的路由的。
+
+熟悉 Laravel 開發的各位一定知道，我們會在 `routes/web.php` 和 `routes/api.php` 之類的檔案撰寫我們的路由。
+
+可是，Laravel 是在什麼時間點，知道這兩個檔案的內容呢？
+
+
+
+
+
+## 尋找路由
 `$kernel = $app->make(Illuminate\Contracts\Http\Kernel::class);` 這段是用來建立 `$kernel`
 
 結果我們發現，`Illuminate\Contracts\Http\Kernel` 是一個介面！
@@ -112,7 +125,7 @@ protected function findRoute($request)
 }
 ```
 
-往下追我們會找到
+`$this->routes` 是一個 `RouteCollection` 物件，往下追我們會找到
 
 ```php
 public function match(Request $request)
@@ -149,7 +162,81 @@ public function match(Request $request)
 
 #### `get()`
 
+我們來看看 `get()` 的邏輯
 
+```php
+/**
+ * Get routes from the collection by method.
+ *
+ * @param  string|null  $method
+ * @return array
+ */
+public function get($method = null)
+{
+    return is_null($method) ? $this->getRoutes() : Arr::get($this->routes, $method, []);
+}
+```
+
+如果沒有傳入 `$method`，那就假設是要拿全部的路由，透過 `$this->getRoutes()` 可以取得：
+
+```php
+/**
+ * Get all of the routes in the collection.
+ *
+ * @return array
+ */
+public function getRoutes()
+{
+    return array_values($this->allRoutes);
+}
+```
+
+如果有傳入 `$method`，那麼代表需要比對，呼叫 `Arr::get($this->routes, $method, [])` 來取出用這個動詞的路由。
+
+##### `Arr::get()`
+
+這個函式屬於 Laravel Helpers 的一項，開發者可以在自己寫的程式內使用。
+
+我們來看看裡面的實作：
+
+```php
+/**
+ * Get an item from an array using "dot" notation.
+ *
+ * @param  \ArrayAccess|array  $array
+ * @param  string|int  $key
+ * @param  mixed   $default
+ * @return mixed
+ */
+public static function get($array, $key, $default = null)
+{
+    if (! static::accessible($array)) {
+        return value($default);
+    }
+
+    if (is_null($key)) {
+        return $array;
+    }
+
+    if (static::exists($array, $key)) {
+        return $array[$key];
+    }
+
+    if (strpos($key, '.') === false) {
+        return $array[$key] ?? value($default);
+    }
+
+    foreach (explode('.', $key) as $segment) {
+        if (static::accessible($array) && static::exists($array, $segment)) {
+            $array = $array[$segment];
+        } else {
+            return value($default);
+        }
+    }
+
+    return $array;
+}
+```
 
 #### `matchAgainstRoutes()`
 
@@ -168,9 +255,9 @@ protected function matchAgainstRoutes(array $routes, $request, $includingMethod 
 }
 ```
 
-前面用了 `Collection` 的 `partition()`，將路由分成 `$fallbacks` 和 `$routes` 兩塊。
+前面用了 `Collection` 的 `partition()`，將路由分成 `$fallbacks` 和 `$routes` 兩塊。之後用 `merge()` 合併
 
-我們先看
+暫時不管 `$fallbacks` 我們先看 `matches()` 的實作
 
 ```php
 public function matches(Request $request, $includingMethod = true)
