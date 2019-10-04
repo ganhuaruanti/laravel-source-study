@@ -8,9 +8,43 @@
 
 可是，Laravel 是在什麼時間點，知道這兩個檔案的內容呢？
 
+我們來看 `config/app.php` 裡面有一段
+
+```php
+'providers' => [
+
+    /*
+     * Laravel Framework Service Providers...
+     */
+      ...
+
+    /*
+     * Package Service Providers...
+     */
+
+    /*
+     * Application Service Providers...
+     */
+    App\Providers\AppServiceProvider::class,
+    App\Providers\AuthServiceProvider::class,
+    // App\Providers\BroadcastServiceProvider::class,
+    App\Providers\EventServiceProvider::class,
+    App\Providers\RouteServiceProvider::class,
+
+],
+```
+我們看到這裡註冊了一個 `App\Providers\RouteServiceProvider`。我們來看看這個物件的關係
+
+```
+use Illuminate\Foundation\Support\Providers\RouteServiceProvider as ServiceProvider;
+
+class RouteServiceProvider extends ServiceProvider
+```
 
 
+看到這裡，應該就算是清楚了。藉由撰寫 `Illuminate\Foundation\Support\Providers\RouteServiceProvider` 和 `App\Providers\RouteServiceProvider` 兩個物件，可以讓開發者簡單的透過 Service Provider 簡單的使用自己喜歡的路由檔案。
 
+看到這裡我們知道，透過 `App\Providers\RouteServiceProvider` 是怎麼把 `routes/web.php` 等檔案變成路由的。至於 Service Provider 在 config 裡面運作的時間，這個問題我們留待下次討論。
 
 ## 尋找路由
 `$kernel = $app->make(Illuminate\Contracts\Http\Kernel::class);` 這段是用來建立 `$kernel`
