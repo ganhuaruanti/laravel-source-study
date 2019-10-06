@@ -400,7 +400,7 @@ public function compile()
 
 這樣當然可以省略掉很多開發的時間，缺點就是程式碼可能會變得更加複雜，效能上也會有所犧牲。至於合適與否，就見仁見智了。
 
-再來
+再來我們來看 `(new RouteParameterBinder($this))->parameters($request);` 這一段
 
 ```
 /**
