@@ -376,6 +376,59 @@ return $this->compiled;
 }
 ```
 
+然後我們追 `RouteCompiler->compile()`
+
+```
+/**
+ * Compile the route.
+ *
+ * @return \Symfony\Component\Routing\CompiledRoute
+ */
+public function compile()
+{
+    $optionals = $this->getOptionalParameters();
+
+    $uri = preg_replace('/\{(\w+?)\?\}/', '{$1}', $this->route->uri());
+
+    return (
+        new SymfonyRoute($uri, $optionals, $this->route->wheres, ['utf8' => true], $this->route->getDomain() ?: '')
+    )->compile();
+}
+```
+
+這邊看出一個很有趣的作法：其實所謂的 `compile` 是把資訊都編譯成一個 `SymfonyRoute` 物件
+
+這樣當然可以省略掉很多開發的時間，缺點就是程式碼可能會變得更加複雜，效能上也會有所犧牲。至於合適與否，就見仁見智了。
+
+再來
+
+```
+/**
+ * Get the parameters for the route.
+ *
+ * @param  \Illuminate\Http\Request  $request
+ * @return array
+ */
+public function parameters($request)
+{
+    // If the route has a regular expression for the host part of the URI, we will
+    // compile that and get the parameter matches for this domain. We will then
+    // merge them into this parameters array so that this array is completed.
+    $parameters = $this->bindPathParameters($request);
+
+    // If the route has a regular expression for the host part of the URI, we will
+    // compile that and get the parameter matches for this domain. We will then
+    // merge them into this parameters array so that this array is completed.
+    if (! is_null($this->route->compiled->getHostRegex())) {
+        $parameters = $this->bindHostParameters(
+            $request, $parameters
+        );
+    }
+
+    return $this->replaceDefaults($parameters);
+}
+```
+
 
 #### 找不到路徑
 
