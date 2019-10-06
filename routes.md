@@ -110,7 +110,7 @@ public function handle($request)
 }
 ```
 
-看起來好像很多邏輯，不過我們可以發現到，這裡面大多數都是例外處理。`$request->enableHttpMethodParameterOverride();` 所做的事情是設置參數。
+看起來好像很多邏輯，不過我們可以發現到，這裡面大多數都是例外處理。然後，`$request->enableHttpMethodParameterOverride();` 所做的事情是設置參數。
 
 所以真正的邏輯是在 `$response = $this->sendRequestThroughRouter($request);` 裡面。
 
@@ -272,6 +272,19 @@ public static function get($array, $key, $default = null)
 }
 ```
 
+這個函式實作了針對所謂「"dot" notation」的取值方式。我們看看官網的教學
+
+```php
+use Illuminate\Support\Arr;
+
+$array = ['products' => ['desk' => ['price' => 100]]];
+
+$flattened = Arr::dot($array);
+
+// ['products.desk.price' => 100]
+
+```
+
 #### `matchAgainstRoutes()`
 
 我們來看看 `matchAgainstRoutes()`
@@ -313,16 +326,207 @@ public function matches(Request $request, $includingMethod = true)
 ```
 
 
-#### 一般情況
+#### 找到路徑
+
+```php
+if (! is_null($route)) {
+    return $route->bind($request);
+}
+```
+
+找到路徑的情況下，`$route` 會有值，所以到這裡就會進入 `bind()`
+
+我們稍微追一下 `bind()` 的實作
+
+```php
+/**
+ * Bind the route to a given request for execution.
+ *
+ * @param  \Illuminate\Http\Request  $request
+ * @return $this
+ */
+public function bind(Request $request)
+{
+    $this->compileRoute();
+
+    $this->parameters = (new RouteParameterBinder($this))
+                    ->parameters($request);
+
+    $this->originalParameters = $this->parameters;
+
+    return $this;
+}
+```
+
+第一行是 `compileRoute()`，看起來要理解這段程式這是必要邏輯，我們追下去看
+
+```php
+/**
+* Compile the route into a Symfony CompiledRoute instance.
+*
+* @return \Symfony\Component\Routing\CompiledRoute
+*/
+protected function compileRoute()
+{
+if (! $this->compiled) {
+    $this->compiled = (new RouteCompiler($this))->compile();
+}
+
+return $this->compiled;
+}
+```
+
 
 #### 找不到路徑
+
+如果 `is_null($route)` 是 `true`，那麼就是找不到路徑了，會往下繼續運作。
+
 ##### 只是動詞錯誤
+
+往下實作我們來到這裡
+
+```php
+// If no route was found we will now check if a matching route is specified by
+// another HTTP verb. If it is we will need to throw a MethodNotAllowed and
+// inform the user agent of which HTTP verb it should use for this route.
+$others = $this->checkForAlternateVerbs($request);
+```
+
+這邊可以看到大量的註解，而且是很有價值的運作邏輯註解。告訴我們 `checkForAlternateVerbs()` 是為了處理「如果是動詞用錯，我們要拋出 `MethodNotAllowed`，並告訴使用者可以用哪些動詞」這個邏輯。
+
+我們繼續往下看看
+
+```php
+/**
+ * Determine if any routes match on another HTTP verb.
+ *
+ * @param  \Illuminate\Http\Request  $request
+ * @return array
+ */
+protected function checkForAlternateVerbs($request)
+{
+    $methods = array_diff(Router::$verbs, [$request->getMethod()]);
+
+    // Here we will spin through all verbs except for the current request verb and
+    // check to see if any routes respond to them. If they do, we will return a
+    // proper error response with the correct headers on the response string.
+    $others = [];
+
+    foreach ($methods as $method) {
+        if (! is_null($this->matchAgainstRoutes($this->get($method), $request, false))) {
+            $others[] = $method;
+        }
+    }
+
+    return $others;
+}
+```
+
+利用 `array_diff()` 這個 PHP 函式，我們可以找到除了 `$request`的動詞外的其他動詞。
+
+`Router::$verbs` 有
+
+```php
+public static $verbs = ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'];
+```
+
+`matchAgainstRoutes()` 我們之前看過，在
+
+```php
+public function match(Request $request)
+{
+    $routes = $this->get($request->getMethod());
+
+    // First, we will see if we can find a matching route for this current request
+    // method. If we can, great, we can just return it so that it can be called
+    // by the consumer. Otherwise we will check for routes with another verb.
+    $route = $this->matchAgainstRoutes($routes, $request);
+```
+
+這時我們就可以感覺到，為什麼 `matchAgainstRoutes()` 當初會設計成
+
+```php
+/**
+ * Determine if a route in the array matches the request.
+ *
+ * @param  array  $routes
+ * @param  \Illuminate\Http\Request  $request
+ * @param  bool  $includingMethod
+ * @return \Illuminate\Routing\Route|null
+ */
+protected function matchAgainstRoutes(array $routes, $request, $includingMethod = true)
+```
+
+因為這樣設計，在現在這個場景，我們就可以共用 `matchAgainstRoutes()` 這個函式。
+
+後面的邏輯就很簡單了，在一一比對過所有動詞後，把可以用的動詞都寫進 `$others` 陣列裡面，然後回傳。
+
+回傳其他可用的動詞之後，我們到
+
+```
+if (count($others) > 0) {
+    return $this->getRouteForMethods($request, $others);
+}
+```
+
+如果有其他可用動詞，我們會進入到 `getRouteForMethods()`
+
+```php
+protected function getRouteForMethods($request, array $methods)
+{
+    if ($request->method() === 'OPTIONS') {
+        return (new Route('OPTIONS', $request->path(), function () use ($methods) {
+            return new Response('', 200, ['Allow' => implode(',', $methods)]);
+        }))->bind($request);
+    }
+
+    $this->methodNotAllowed($methods, $request->method());
+}
+```
+
+這邊處理了有關 `'OPTIONS'` 這個選項的邏輯。我們參考 [MDN Web Docs](https://developer.mozilla.org/zh-CN/docs/Web/HTTP/Methods/OPTIONS) 如果 HTTP 動詞是 `OPTIONS`，那應該要回傳本路徑可以用的所有動詞。
+
+如果不是 `'OPTIONS'` 這個動詞，那麼就運作 `methodNotAllowed()`
+
+```php
+/**
+ * Throw a method not allowed HTTP exception.
+ *
+ * @param  array  $others
+ * @param  string  $method
+ * @return void
+ *
+ * @throws \Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException
+ */
+protected function methodNotAllowed(array $others, $method)
+{
+    throw new MethodNotAllowedHttpException(
+        $others,
+        sprintf(
+            'The %s method is not supported for this route. Supported methods: %s.',
+            $method,
+            implode(', ', $others)
+        )
+    );
+}
+```
+
+到這裏，寫錯動詞的路徑設定就完整了。
 
 ##### 完全找不到路徑
 
+如果到 `count($others) > 0` 不成立，那麼我們就會到下一段落
+
+```php
+throw new NotFoundHttpException;
+```
+
+完全找不到路徑的邏輯就這麼簡單。
+
+
 ### `runRoute()`
 
-進到 `runRoute()` 之後，我們就可以一探實際運作框架邏輯的起源了。
+`findRoute()` 看完，進到 `runRoute()` 之後，我們就可以一探實際運作框架邏輯的起源了。
 
 找到對應的路由之後，
 
