@@ -27,3 +27,42 @@ public function run()
 
 ## `runController()`
 
+`runController()` 實作是
+
+```php
+/**
+ * Run the route action and return the response.
+ *
+ * @return mixed
+ *
+ * @throws \Symfony\Component\HttpKernel\Exception\NotFoundHttpException
+ */
+protected function runController()
+{
+    return $this->controllerDispatcher()->dispatch(
+        $this, $this->getController(), $this->getControllerMethod()
+    );
+}
+```
+
+這裡我們見到了 `controllerDispatcher()`
+
+```php
+/**
+ * Get the dispatcher for the route's controller.
+ *
+ * @return \Illuminate\Routing\Contracts\ControllerDispatcher
+ */
+public function controllerDispatcher()
+{
+    if ($this->container->bound(ControllerDispatcherContract::class)) {
+        return $this->container->make(ControllerDispatcherContract::class);
+    }
+
+    return new ControllerDispatcher($this->container);
+}
+```
+
+如果註冊了 `ControllerDispatcherContract` 應該對應的實作類別，那麼就會通過 `$this->container->make()` 實作出該類別，否則會實作 `ControllerDispatcher()`
+
+這個模式很有趣，不過我們今天要鑽研的是控制器的流程，我們先看預設的 `ControllerDispatcher` 的實作細節。
