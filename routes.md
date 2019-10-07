@@ -498,7 +498,7 @@ protected function checkForAlternateVerbs($request)
 public static $verbs = ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'];
 ```
 
-`matchAgainstRoutes()` 我們之前看過，在
+`matchAgainstRoutes()` 我們之前看過，在下面這段裡：
 
 ```php
 public function match(Request $request)
