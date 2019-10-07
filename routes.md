@@ -378,7 +378,7 @@ return $this->compiled;
 
 然後我們追 `RouteCompiler->compile()`
 
-```
+```php
 /**
  * Compile the route.
  *
