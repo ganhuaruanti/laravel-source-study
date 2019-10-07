@@ -396,13 +396,19 @@ public function compile()
 }
 ```
 
-這邊看出一個很有趣的作法：其實所謂的 `compile` 是把資訊都編譯成一個 `SymfonyRoute` 物件
+這邊看出一個很有趣的作法：其實所謂的 `compile` 是把資訊都編譯成一個 `SymfonyRoute` 物件。利用 Symfony 這個套件之前做過的事情，免去需要自己重新動手做的麻煩。
 
-這樣當然可以省略掉很多開發的時間，缺點就是程式碼可能會變得更加複雜，效能上也會有所犧牲。至於合適與否，就見仁見智了。
+這樣做的優點是，可以節省掉很多開發的時間。這也相當符合軟體開發常說的「不要重新發明輪子」的說法。既然路由這件事情 Symfony 已經有做過，而且做得不錯，我們就沿用下去，然後針對我們認為需要改進的地方做調整就好。
+
+這個做法的缺點則是，程式碼的依賴會變得更加複雜。這點可以從 Symfony github 專案內的 [composer.json](https://github.com/symfony/symfony/blob/master/composer.json) 可以看出來。Symfony 大多數都是依賴自己開發的套件，而 Laravel 框架則是依賴許多的第三方套件。
+
+除了依賴變得複雜之外，效能上也會有所犧牲。因為在啟用服務時，你比起直接使用 Symfony 的路由，必定需要經過一段邏輯處理流程，然後才能進入 Symfony 的路由繼續處理。
+
+在這件事上，我們可以看到在這個議題上，Laravel 選擇了使用他人套件這個做法。至於合適與否，就見仁見智了。
 
 再來我們來看 `(new RouteParameterBinder($this))->parameters($request);` 這一段
 
-```
+```php
 /**
  * Get the parameters for the route.
  *
@@ -430,13 +436,22 @@ public function parameters($request)
 ```
 
 
+
 #### 找不到路徑
 
-如果 `is_null($route)` 是 `true`，那麼就是找不到路徑了，會往下繼續運作。
+回到前面的 `match()` 中
+
+```php
+if (! is_null($route)) {
+    return $route->bind($request);
+}
+```
+
+如果 `is_null($route)` 是 `true`，那麼就是找不到路徑了，會往下繼續運作，根據動詞錯誤或者根本路徑不存在分開處理。
 
 ##### 只是動詞錯誤
 
-往下實作我們來到這裡
+往下追蹤，我們會看到這段程式碼
 
 ```php
 // If no route was found we will now check if a matching route is specified by
@@ -700,4 +715,14 @@ public static function toResponse($request, $response)
 
 如果像我們測試常做的，回傳純字串，那麼就會被包裝成 `SymfonyResponse` 然後回傳。
 
-如果是回傳 Model，那就會包裝成 `JsonResponse`
+如果是回傳 Model，那就會包裝成 `JsonResponse`。
+
+到這邊，有關 
+
+```php
+$response = $kernel->handle(
+    $request = Illuminate\Http\Request::capture()
+);
+```
+
+這段函式背後所做的事情，就算是有個大致的掌握了。
