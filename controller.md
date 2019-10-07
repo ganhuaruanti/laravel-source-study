@@ -45,7 +45,7 @@ protected function runController()
 }
 ```
 
-這裡我們見到了 `controllerDispatcher()`
+這裡我們見到了 `controllerDispatcher()` 函式
 
 ```php
 /**
@@ -65,4 +65,28 @@ public function controllerDispatcher()
 
 如果註冊了 `ControllerDispatcherContract` 應該對應的實作類別，那麼就會通過 `$this->container->make()` 實作出該類別，否則會實作 `ControllerDispatcher()`
 
-這個模式很有趣，不過我們今天要鑽研的是控制器的流程，我們先看預設的 `ControllerDispatcher` 的實作細節。
+這個模式很有趣，不過我們今天要鑽研的是控制器的流程，我們先看預設的 `ControllerDispatcher->dispatch()` 的實作細節。
+
+
+```php
+/**
+ * Dispatch a request to a given controller and method.
+ *
+ * @param  \Illuminate\Routing\Route  $route
+ * @param  mixed  $controller
+ * @param  string  $method
+ * @return mixed
+ */
+public function dispatch(Route $route, $controller, $method)
+{
+    $parameters = $this->resolveClassMethodDependencies(
+        $route->parametersWithoutNulls(), $controller, $method
+    );
+
+    if (method_exists($controller, 'callAction')) {
+        return $controller->callAction($method, $parameters);
+    }
+
+    return $controller->{$method}(...array_values($parameters));
+}
+```
