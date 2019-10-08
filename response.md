@@ -100,7 +100,60 @@ class Response extends BaseResponse
 
 往上面追蹤，我們會找到 `use Symfony\Component\HttpFoundation\Response as BaseResponse;` 這段。
 
-這下，我們就清楚了，這又是一個利用 Symfony 套件來減少需要做工的選擇。利用 Symfony 已經做好過的回應功能，來減少框架開發時所需要的工作。
+這下，我們就可以清楚看到，這又是一個利用 Symfony 套件來減少需要做工的選擇。利用 Symfony 已經做好過的回應功能，來減少框架開發時所需要的工作。
 
-要弄清楚到底做了什麼，我們繼續往下看 `Symfony\Component\HttpFoundation\Response` 對 `handle()` 的實作。
+要弄清楚到底做了什麼，我們繼續往下看 `Symfony\Component\HttpFoundation\Response` 對 `send()` 的實作。
 
+```php
+/**
+ * Sends HTTP headers and content.
+ *
+ * @return $this
+ */
+public function send()
+{
+    $this->sendHeaders();
+    $this->sendContent();
+
+    if (\function_exists('fastcgi_finish_request')) {
+        fastcgi_finish_request();
+    } elseif (!\in_array(\PHP_SAPI, ['cli', 'phpdbg'], true)) {
+        static::closeOutputBuffers(0, true);
+    }
+
+    return $this;
+}
+```
+
+繼續檢查，我們可以找到 php.net [對 fastcgi_finish_request 的說明](https://www.php.net/manual/en/function.fastcgi-finish-request.php)
+
+所以我們可以下結論，如果 `fastcgi_finish_request()` 存在，Symfony 可以利用 `fastcgi_finish_request()` 將資料回傳給用戶，不然就透過 `closeOutputBuffers()` 回傳。其實做為
+
+```php
+/**
+ * Cleans or flushes output buffers up to target level.
+ *
+ * Resulting level can be greater than target level if a non-removable buffer has been encountered.
+ *
+ * @final
+ */
+public static function closeOutputBuffers(int $targetLevel, bool $flush)
+{
+    $status = ob_get_status(true);
+    $level = \count($status);
+    $flags = PHP_OUTPUT_HANDLER_REMOVABLE | ($flush ? PHP_OUTPUT_HANDLER_FLUSHABLE : PHP_OUTPUT_HANDLER_CLEANABLE);
+
+    while ($level-- > $targetLevel && ($s = $status[$level]) && (!isset($s['del']) ? !isset($s['flags']) || ($s['flags'] & $flags) === $flags : $s['del'])) {
+        if ($flush) {
+            ob_end_flush();
+        } else {
+            ob_end_clean();
+        }
+    }
+}
+```
+
+如果沒法使用 `fastcgi_finish_request()` 那就是利用 output buffers 系列的函式，比方說 `ob_get_status()`，`ob_end_flush()`，`ob_end_clean()` 來進行處理。
+
+回到 Laravel 的 Response 物件，
+    $status = ob_get_status(true);
