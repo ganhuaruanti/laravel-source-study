@@ -155,5 +155,107 @@ public static function closeOutputBuffers(int $targetLevel, bool $flush)
 
 如果沒法使用 `fastcgi_finish_request()` 那就是利用 output buffers 系列的函式，比方說 `ob_get_status()`，`ob_end_flush()`，`ob_end_clean()` 來進行處理。
 
-回到 Laravel 的 Response 物件，
-    $status = ob_get_status(true);
+回到 Laravel 的 Response 物件，我們前面可以注意到，Laravel 似乎只覆寫了 `sendContent()`，我們先看看 Symfony 的實作
+
+```php
+/**
+ * Sends content for the current web response.
+ *
+ * @return $this
+ */
+public function sendContent()
+{
+    echo $this->content;
+
+    return $this;
+}
+```
+
+非常單純的 `echo`，那麼，我們來比對 Laravel 的實作
+
+```php
+/**
+ * Set the content on the response.
+ *
+ * @param  mixed  $content
+ * @return $this
+ */
+public function setContent($content)
+{
+    $this->original = $content;
+
+    // If the content is "JSONable" we will set the appropriate header and convert
+    // the content to JSON. This is useful when returning something like models
+    // from routes that will be automatically transformed to their JSON form.
+    if ($this->shouldBeJson($content)) {
+        $this->header('Content-Type', 'application/json');
+
+        $content = $this->morphToJson($content);
+    }
+
+    // If this content implements the "Renderable" interface then we will call the
+    // render method on the object so we will avoid any "__toString" exceptions
+    // that might be thrown and have their errors obscured by PHP's handling.
+    elseif ($content instanceof Renderable) {
+        $content = $content->render();
+    }
+
+    parent::setContent($content);
+
+    return $this;
+}
+```
+
+搭配上註解，我們可以看出來，這是基於 Symfony 的基礎上，加上針對 json 和 Renderable 的實作。
+
+覆寫了原本的 `setContent()` 之後，我們就可以
+
+### json
+
+我們先看看 json 的部分。`shouldBeJson()` 非常明顯，是一個回傳 `bool` 的判斷式
+
+```
+/**
+ * Determine if the given content should be turned into JSON.
+ *
+ * @param  mixed  $content
+ * @return bool
+ */
+protected function shouldBeJson($content)
+{
+    return $content instanceof Arrayable ||
+           $content instanceof Jsonable ||
+           $content instanceof ArrayObject ||
+           $content instanceof JsonSerializable ||
+           is_array($content);
+}
+```
+
+`$this->header('Content-Type', 'application/json');` 這段也不難理解。我們來看看 `morphToJson()` 的實作
+
+```php
+/**
+ * Morph the given content into JSON.
+ *
+ * @param  mixed   $content
+ * @return string
+ */
+protected function morphToJson($content)
+{
+    if ($content instanceof Jsonable) {
+        return $content->toJson();
+    } elseif ($content instanceof Arrayable) {
+        return json_encode($content->toArray());
+    }
+
+    return json_encode($content);
+}
+```
+
+這裏利用 `json_encode()` 來處理 `Arrayable` 的 json 回傳。
+
+
+## 
+
+
+
