@@ -325,6 +325,49 @@ public function matches(Request $request, $includingMethod = true)
 }
 ```
 
+`$this->compileRoute();` 我們暫時省略細節，只從名字推測用意是對 Route 物件做一些處理。把這段的重點放在
+
+```php
+foreach ($this->getValidators() as $validator) {
+    if (! $includingMethod && $validator instanceof MethodValidator) {
+        continue;
+    }
+
+    if (! $validator->matches($this, $request)) {
+        return false;
+    }
+}
+```
+
+上面。
+
+這段可以看出是跑一個迴圈，來過濾出所有不符合規則的狀況，一但不符合就回傳 `false`，如果通過了這個 `foreach` 就回傳 `true`
+
+那麼規則有哪些呢？我們來看看 `getValidators()`
+
+```php
+/**
+ * Get the route validators for the instance.
+ *
+ * @return array
+ */
+public static function getValidators()
+{
+    if (isset(static::$validators)) {
+        return static::$validators;
+    }
+
+    // To match the route, we will use a chain of responsibility pattern with the
+    // validator implementations. We will spin through each one making sure it
+    // passes and then we will know if the route as a whole matches request.
+    return static::$validators = [
+        new UriValidator, new MethodValidator,
+        new SchemeValidator, new HostValidator,
+    ];
+}
+```
+這邊註解說是使用了 `chain of responsibility pattern`，不過
+
 
 #### 找到路徑
 
