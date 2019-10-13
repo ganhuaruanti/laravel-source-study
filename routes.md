@@ -366,10 +366,36 @@ public static function getValidators()
     ];
 }
 ```
-這邊註解說是使用了 `chain of responsibility pattern`，不過
+這邊註解說是使用了 `chain of responsibility pattern`，我們往下看 `getValidators()` 的實作方式
+
+```php
+/**
+ * Get the route validators for the instance.
+ *
+ * @return array
+ */
+public static function getValidators()
+{
+    if (isset(static::$validators)) {
+        return static::$validators;
+    }
+
+    // To match the route, we will use a chain of responsibility pattern with the
+    // validator implementations. We will spin through each one making sure it
+    // passes and then we will know if the route as a whole matches request.
+    return static::$validators = [
+        new UriValidator, new MethodValidator,
+        new SchemeValidator, new HostValidator,
+    ];
+}
+```
+
+往下更挖掘就可以知道，每個 `Validator` 物件都負責針對網址的某個條件進行判斷，每個 Validator 都跑完且沒有回傳 `false` 那就回傳 `true`。
 
 
 #### 找到路徑
+
+首先，我們來看看找到
 
 ```php
 if (! is_null($route)) {
