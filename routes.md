@@ -142,7 +142,9 @@ public function dispatchToRoute(Request $request)
     return $this->runRoute($request, $this->findRoute($request));
 }
 ```
-這邊顧名思義，邏輯也很清楚了。透過 `findRoute()` 找到 `$request` 所對應的路由，然後再透過 `runRoute()` 實際運作邏輯，將
+這邊顧名思義，邏輯也很清楚了。透過 `findRoute()` 找到 `$request` 所對應的路由，然後再透過 `runRoute()` 實際運作邏輯，最後回傳結果。
+
+到這邊，我們區分兩個邏輯進行追蹤：找尋對應路由的 `findRoute()`，以及處理路由的 `runRoute()`。
 
 ### `findRoute()`
 
@@ -188,15 +190,17 @@ public function match(Request $request)
 }
 ```
 
-看了詳細的註解說明，我們可以理解這一段的商業邏輯了。
+看了詳細的註解說明，我們可以初步理解這一段的商業邏輯。
 
-為了區分你是完全寫錯路徑，還是只是動詞寫錯，這邊會將存取需求的動詞先抓出來，然後先針對這個需求找對應路徑，找不到再換動詞找看看。
+為了區分你是完全寫錯路徑，還是只是動詞寫錯，這邊會將存取需求的動詞先抓出來，然後先針對這個需求找對應路徑，找不到的話，再換動詞找看看。
 
-如果換了動詞就可以找到路徑，回傳 `MethodNotAllowedHttpException`，不然就回傳 `NotFoundHttpException`。
+如果換了動詞就可以找到路徑的話，回傳 `MethodNotAllowedHttpException` 代表動詞出錯，不然就回傳 `NotFoundHttpException` 代表路由不存在。
+
+簡單的順過羅及隻後，我們在一個一個的看裡面實作的細節。
 
 #### `get()`
 
-我們來看看 `get()` 的邏輯
+從上往下開始，我們來看看 `get()` 的邏輯
 
 ```php
 /**
