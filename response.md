@@ -274,7 +274,50 @@ elseif ($content instanceof Renderable) {
 
 我們會看到三個部分：
 
-
 * `interface View extends Renderable`
 * `class Mailable implements MailableContract, Renderable`
 * `class MailMessage extends SimpleMessage implements Renderable`
+
+這三個部分顯然最重要的是 `View` 這個介面，因為往下延伸可以看到整個 `View` 的處理過程，這是框架設計另一個很大的邏輯。
+
+不過今天我們先專注於 response 的處理，有關 `View` 的處理先打住。
+
+## `parent::setContent()`
+
+繼續往下我們看到
+
+```php
+parent::setContent($content);
+
+return $this;
+```
+
+這樣的設計結構可能對一些人有點陌生。簡單的說，當你繼承了一個有商業邏輯的類別，你只想要在該類別的某些邏輯上增減東西，但是不想重新複製所有的內容時，就會選擇這樣的做法：先處理一些自己的邏輯，之後呼叫父類別的函式，如果做完了之後你還想處理部分內容，你可以在後面加上自己的邏輯。
+
+我們來看看 `parent::setContent()` 的實作
+
+```php
+/**
+ * Sets the response content.
+ *
+ * Valid types are strings, numbers, null, and objects that implement a __toString() method.
+ *
+ * @param mixed $content Content that can be cast to string
+ *
+ * @return $this
+ *
+ * @throws \UnexpectedValueException
+ */
+public function setContent($content)
+{
+    if (null !== $content && !\is_string($content) && !is_numeric($content) && !\is_callable([$content, '__toString'])) {
+        throw new \UnexpectedValueException(sprintf('The Response content must be a string or object implementing __toString(), "%s" given.', \gettype($content)));
+    }
+
+    $this->content = (string) $content;
+
+    return $this;
+}
+```
+
+這裡主要是進行錯誤處理，如果被強迫設置無法轉成字串的內容時，拋出一個 PHP 標準 library（PHP SPL）的 `UnexpectedValueException`。
