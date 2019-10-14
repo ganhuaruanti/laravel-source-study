@@ -255,7 +255,26 @@ protected function morphToJson($content)
 這裏利用 `json_encode()` 來處理 `Arrayable` 的 json 回傳。
 
 
-## 
+## Renderable
+
+再來我們看到下一段
+
+```php
+// If this content implements the "Renderable" interface then we will call the
+// render method on the object so we will avoid any "__toString" exceptions
+// that might be thrown and have their errors obscured by PHP's handling.
+elseif ($content instanceof Renderable) {
+    $content = $content->render();
+}
+```
+
+`Renderable` 的全部路徑是 `Illuminate\Contracts\Support\Renderable`，可以推測這個是另一個 Laravel 建立的介面。
+
+我們來看看哪些物件實作或者延伸這個介面。
+
+我們會看到三個部分：
 
 
-
+* `interface View extends Renderable`
+* `class Mailable implements MailableContract, Renderable`
+* `class MailMessage extends SimpleMessage implements Renderable`
