@@ -4,6 +4,8 @@
 
 研讀所有程式原始碼時，面對滿山滿谷的原始碼，通常都是先從程式的起始點開始找起。
 
+也就是說，我們嘗試從這麼多的程式碼裡面，找出 **這支程式從哪裡開始？** 這個問題的答案。
+
 以 Laravel 來說，就是 `public/index.php`，這也是為什麼當你在設置環境的時候，Laravel 的官方教學說
 
 ```
@@ -11,6 +13,8 @@ Public Directory
 
 After installing Laravel, you should configure your web server's document / web root to be the public directory. The index.php in this directory serves as the front controller for all HTTP requests entering your application.
 ```
+
+找到這個進入點之後，我們就可以非常快速地看到程式的概觀，並粗略的理解整個程式流程為何。
 
 ### `index.php`
 
@@ -89,7 +93,9 @@ $response->send();
 $kernel->terminate($request, $response);
 ```
 
-到這裡，我們可以確實地看到 Laravel 框架運作的步驟了。
+是否很意外，竟然只有這麼短短的幾行程式碼？
+
+雖然只有這麼短短的幾行，但是到這裡，我們可以紮實地看到 Laravel 框架運作的流程以及概念。
 
 首先，透過 `$kernel = $app->make(Illuminate\Contracts\Http\Kernel::class);`，我們建立了處理 `$request` 的核心 `$kernel`
 
@@ -97,4 +103,4 @@ $kernel->terminate($request, $response);
 
 接著，我們透過 `$response->send();` 回傳處理過後的回應。然後執行 `$kernel->terminate($request, $response);`
 
-到這裡，我們就可以大致上掌握住程式的概略邏輯了。
+到這裡，我們就可以大致上掌握住程式的概略邏輯了。不管背後有多麽複雜的操作邏輯，這一些邏輯必定會在這幾行程式碼內的某個位置呼叫。我們可以依序地往下追蹤，來找出所有的功能。
