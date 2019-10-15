@@ -127,7 +127,7 @@ public function send()
 
 繼續檢查，我們可以找到 php.net [對 fastcgi_finish_request 的說明](https://www.php.net/manual/en/function.fastcgi-finish-request.php)
 
-所以我們可以下結論，如果 `fastcgi_finish_request()` 存在，Symfony 可以利用 `fastcgi_finish_request()` 將資料回傳給用戶，不然就透過 `closeOutputBuffers()` 回傳。其實做為
+所以我們可以下結論，如果 `fastcgi_finish_request()` 存在，Symfony 可以利用 `fastcgi_finish_request()` 將資料回傳給用戶，不然就透過 `closeOutputBuffers()` 回傳。`closeOutputBuffers()` 其實做為
 
 ```php
 /**
@@ -153,7 +153,7 @@ public static function closeOutputBuffers(int $targetLevel, bool $flush)
 }
 ```
 
-如果沒法使用 `fastcgi_finish_request()` 那就是利用 output buffers 系列的函式，比方說 `ob_get_status()`，`ob_end_flush()`，`ob_end_clean()` 來進行處理。
+所以，更詳細的說，如果系統沒法使用 `fastcgi_finish_request()` 的話，那就是利用 output buffers 系列的函式，比方說 `ob_get_status()`，`ob_end_flush()`，`ob_end_clean()` 來進行處理。
 
 回到 Laravel 的 Response 物件，我們前面可以注意到，Laravel 似乎只覆寫了 `sendContent()`，我們先看看 Symfony 的實作
 
@@ -208,7 +208,7 @@ public function setContent($content)
 
 搭配上註解，我們可以看出來，這是基於 Symfony 的基礎上，加上針對 json 和 Renderable 的實作。
 
-覆寫了原本的 `setContent()` 之後，我們就可以
+覆寫了原本的 `setContent()` 之後，我們就可以處理回傳了，以下我們針對幾種不同的回傳形式來追蹤
 
 ### json
 
@@ -278,7 +278,7 @@ elseif ($content instanceof Renderable) {
 * `class Mailable implements MailableContract, Renderable`
 * `class MailMessage extends SimpleMessage implements Renderable`
 
-這三個部分顯然最重要的是 `View` 這個介面，因為往下延伸可以看到整個 `View` 的處理過程，這是框架設計另一個很大的邏輯。
+這三個部分顯然最重要的是 `View` 這個介面，因為往下延伸的話，可以看到整個 `View` 的處理過程，這是 MVC 框架設計另一個很大的邏輯。
 
 不過今天我們先專注於 response 的處理，有關 `View` 的處理先打住。
 
@@ -321,3 +321,19 @@ public function setContent($content)
 ```
 
 這裡主要是進行錯誤處理，如果被強迫設置無法轉成字串的內容時，拋出一個 PHP 標準 library（PHP SPL）的 `UnexpectedValueException`。
+
+接著是 `$this->content = (string) $content;` 的轉型，然後 `return $this;` 回傳自己。
+
+這種設計方式被稱為流式接口（fluent interface），簡單的說就是將資料包裝起來，然後每個對資料的操作最後不僅僅是回傳資料或不回傳，而是回傳物件自身。這樣的話，使用該類別時就可以寫出類似的結構：
+
+```php
+$foo->doBar()
+    ->doBaz()
+    ->setQux('qux')
+    ->otherCall()
+    ->getAllTheThings();
+```
+
+不過我們看到，Laravel 的實作並沒有實際利用這個回傳。僅僅是呼叫了之後，一樣回傳了 `$this`，也就是一個 `Illuminate\Http\Response` 物件。
+
+到這邊，整個流程大概就走過一輪了，也提升了我們對整個框架的基本認識。
