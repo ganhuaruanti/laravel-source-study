@@ -6,7 +6,7 @@
 
 ## 疑似全域方法所導致的問題
 
-Laravel 有很多的輔助方法，使用情境是類似全域變數的。比方說印出目前變數資料並且暫停程式的 `dd()`
+Laravel 有很多的輔助方法，使用情境是類似全域變數的。比方說重導向的 `()`
 
 ```php
 public function store(Request $request)
@@ -15,7 +15,6 @@ public function store(Request $request)
     $post->subject_id = 0;
     $post->user_id = Auth::id();
     $post->save();
-    dd($post);
     return redirect(route('posts.index'));
 }
 ```
