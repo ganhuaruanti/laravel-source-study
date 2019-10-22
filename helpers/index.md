@@ -6,7 +6,7 @@
 
 ## 疑似全域方法所導致的問題
 
-Laravel 有很多的輔助方法，使用情境是類似全域變數的。比方說重導向的 `()`
+Laravel 有很多的輔助方法，使用情境是類似全域變數的。比方說重導向的 `redirect()`
 
 ```php
 public function store(Request $request)
