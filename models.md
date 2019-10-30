@@ -155,9 +155,4 @@ if (array_key_exists($key, $this->attributes) ||
     return $this->getAttributeValue($key);
 }
 ```
-
-講到的是有關 Get Mutator 的功能，我們看看官網對這個功能的說明：
-
-    To define an accessor, create a getFooAttribute method on your model where Foo is the "studly" cased name of the column you wish to access. In this example, we'll define an accessor for the first_name attribute. The accessor will automatically be called by Eloquent when attempting to retrieve the value of the first_name attribute:
-    
-    
+`array_key_exists($key, $this->attributes)`
