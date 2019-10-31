@@ -46,7 +46,7 @@ class User extends Model implements
 
 其實做非常簡單，甚至可以說簡單的有點誇張。只有繼承了 `Illuminate\Database\Eloquent\Model` 實作了幾個介面，然後用了四個 trait 就把事情做完了。
  
-雖然繼續研究這些東西非常誘人，不過我們在乎的是針對 Eloquent Model 的實作，所以我們來看看 `Illuminate\Database\Eloquent\Model` 的程式碼。
+雖然繼續研究這些東西非常有趣，不過我們在乎的是針對 Eloquent Model 的實作，所以我們來看看 `Illuminate\Database\Eloquent\Model` 的程式碼。
  
 我們先看看他的宣告
  
@@ -65,9 +65,20 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
  
 可以看到，這是一個 `abstract class`，一樣繼承了大量的介面，並使用大量的 trait 來減少程式碼。
 
-不過，把這些 trait 和 `Illuminate\Database\Eloquent\Model` 裡面的一千多行程式碼一次看完，顯然不是一個好的研究方式。所以我們將問題縮減一下，一次只針對一個問題進行鑽研。
+不過，把這些 trait 和 `Illuminate\Database\Eloquent\Model` 裡面的一千多行程式碼一次看完，顯然不是一個好的研究方式。
 
-我們這裡先選擇一個問題：當我們使用 Eloquent Model，比方說 `User` 的物件 `$user`，存取 `$user->id` 時，到底經過哪些流程呢？
+所以我們將問題縮減一下，一次只針對一個問題進行鑽研。
+
+我們這裡先選擇一個問題：
+
+```php
+<?php
+
+$user = User::find(1);
+return $user->id;
+```
+
+當我們使用 Eloquent Model，比方說 `User` 的物件 `$user`，存取 `$user->id` 時，到底經過哪些流程呢？
 
 ## 物件參數存取
 
@@ -211,6 +222,49 @@ protected function getAttributeFromArray($key)
 
 那麼，我們的問題就變成了，一開始建立 Eloquent Model 時，是怎麼把值放到 `$attributes` 的呢？
 
-我們接著往下看另一個魔法函式：`__call`
+我們接著往下看其他的魔法函式：`__call()` 和 `__callStatic()`
 
 ## `__call`
+
+一般我們建立 Eloquent Model 物件時，必定會呼叫類似 `where()` 之類的函式來建立該物件。
+
+很奇妙的是，這種時候即使 Model 裡面並沒有宣告 `where()` 函式，甚至有的 IDE 都會提示這個問題，不過實際上程式依舊可以執行
+
+這時候就得看到 `__call()` 和 `__callStatic()` 這兩個魔術方法了！我們先來看看 `__callStatic()`
+
+```php
+/**
+ * Handle dynamic static method calls into the method.
+ *
+ * @param  string  $method
+ * @param  array  $parameters
+ * @return mixed
+ */
+public static function __callStatic($method, $parameters)
+{
+    return (new static)->$method(...$parameters);
+}
+```
+
+這段程式會在呼叫某靜態方法的時候，如果不存在該靜態方法，新建立該物件，呼叫同名的方法，並將參數原封不動的傳輸進去。
+
+那，如果連同名的方法都沒有的話呢？這時候就會嘗試透過 `__call()` 進行處理
+
+```php
+/**
+ * Handle dynamic method calls into the model.
+ *
+ * @param  string  $method
+ * @param  array  $parameters
+ * @return mixed
+ */
+public function __call($method, $parameters)
+{
+    if (in_array($method, ['increment', 'decrement'])) {
+        return $this->$method(...$parameters);
+    }
+
+    return $this->forwardCallTo($this->newQuery(), $method, $parameters);
+}
+```
+
