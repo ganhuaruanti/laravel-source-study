@@ -211,6 +211,6 @@ protected function getAttributeFromArray($key)
 
 那麼，我們的問題就變成了，一開始建立 Eloquent Model 時，是怎麼把值放到 `$attributes` 的呢？
 
-我們接著往下看另一個魔法函式：
+我們接著往下看另一個魔法函式：`__call`
 
-## 
+## `__call`
