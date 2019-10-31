@@ -268,3 +268,64 @@ public function __call($method, $parameters)
 }
 ```
 
+上面過濾了 `increment` 和 `decrement` 兩個函式，除了這兩個函式之外，都會進入到 `forwardCallTo()` 函式
+
+那麼，這個函式的實作又是什麼呢？這段函式是在 `ForwardsCalls` 這個 trait 裡面，這個 trait 很小，我們來看看內容
+
+```php
+<?php
+
+namespace Illuminate\Support\Traits;
+
+use Error;
+use BadMethodCallException;
+
+trait ForwardsCalls
+{
+    /**
+     * Forward a method call to the given object.
+     *
+     * @param  mixed  $object
+     * @param  string  $method
+     * @param  array  $parameters
+     * @return mixed
+     *
+     * @throws \BadMethodCallException
+     */
+    protected function forwardCallTo($object, $method, $parameters)
+    {
+        try {
+            return $object->{$method}(...$parameters);
+        } catch (Error | BadMethodCallException $e) {
+            $pattern = '~^Call to undefined method (?P<class>[^:]+)::(?P<method>[^\(]+)\(\)$~';
+
+            if (! preg_match($pattern, $e->getMessage(), $matches)) {
+                throw $e;
+            }
+
+            if ($matches['class'] != get_class($object) ||
+                $matches['method'] != $method) {
+                throw $e;
+            }
+
+            static::throwBadMethodCallException($method);
+        }
+    }
+
+    /**
+     * Throw a bad method call exception for the given method.
+     *
+     * @param  string  $method
+     * @return void
+     *
+     * @throws \BadMethodCallException
+     */
+    protected static function throwBadMethodCallException($method)
+    {
+        throw new BadMethodCallException(sprintf(
+            'Call to undefined method %s::%s()', static::class, $method
+        ));
+    }
+}
+```
+
