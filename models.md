@@ -98,7 +98,7 @@ public function __get($key)
 }
 ```
 
-往下我們看 `getAttribute()` 的實作
+往下我們看 `getAttribute()` 的實作，這個函式實作的位置在 `trait HasAttributes` 裡面
 
 ```php
 /**
@@ -155,4 +155,62 @@ if (array_key_exists($key, $this->attributes) ||
     return $this->getAttributeValue($key);
 }
 ```
-`array_key_exists($key, $this->attributes)`
+
+這裡我們暫時忽略對「"get" mutator」的註解，專注於對取值的研究。
+
+如果 `array_key_exists($key, $this->attributes)` 為真，就會運行 `$this->getAttributeValue($key)`
+
+我們來看看 `getAttributeValue()` 的實作是什麼
+
+```php
+$value = $this->getAttributeFromArray($key);
+
+// If the attribute has a get mutator, we will call that then return what
+// it returns as the value, which is useful for transforming values on
+// retrieval from the model to a form that is more useful for usage.
+if ($this->hasGetMutator($key)) {
+    return $this->mutateAttribute($key, $value);
+}
+
+// If the attribute exists within the cast array, we will convert it to
+// an appropriate native PHP type dependant upon the associated value
+// given with the key in the pair. Dayle made this comment line up.
+if ($this->hasCast($key)) {
+    return $this->castAttribute($key, $value);
+}
+
+// If the attribute is listed as a date, we will convert it to a DateTime
+// instance on retrieval, which makes it quite convenient to work with
+// date fields without having to create a mutator for each property.
+if (in_array($key, $this->getDates()) &&
+    ! is_null($value)) {
+    return $this->asDateTime($value);
+}
+
+return $value;
+```
+
+繼續往下追蹤 `getAttributeFromArray()` 的實作，我們會看到
+
+```php
+/**
+ * Get an attribute from the $attributes array.
+ *
+ * @param  string  $key
+ * @return mixed
+ */
+protected function getAttributeFromArray($key)
+{
+    if (isset($this->attributes[$key])) {
+        return $this->attributes[$key];
+    }
+}
+```
+
+到這邊，我們可以知道這些值主要是從 `$attributes` 這個陣列來的。
+
+那麼，我們的問題就變成了，一開始建立 Eloquent Model 時，是怎麼把值放到 `$attributes` 的呢？
+
+我們接著往下看另一個魔法函式：
+
+## 
