@@ -78,7 +78,7 @@ $user = User::find(1);
 return $user->id;
 ```
 
-當我們使用 Eloquent Model，比方說 `User` 的物件 `$user`，存取 `$user->id` 時，到底經過哪些流程呢？
+當我們使用 Eloquent Model，比方說透過 `User::find` 建立的物件 `$user`，存取 `$user->id` 時，到底經過哪些流程呢？
 
 ## 物件參數存取
 
@@ -226,9 +226,9 @@ protected function getAttributeFromArray($key)
 
 ## `__call`
 
-一般我們建立 Eloquent Model 物件時，必定會呼叫類似 `where()` 之類的函式來建立該物件。
+一般我們建立 Eloquent Model 物件時，必定會呼叫類似 `find()` 之類的函式來建立該物件。
 
-很奇妙的是，這種時候即使 Model 裡面並沒有宣告 `where()` 函式，甚至有的 IDE 都會提示這個問題，不過實際上程式依舊可以執行
+很奇妙的是，這種時候即使 Model 裡面並沒有宣告 `find()` 函式，甚至有的 IDE 都會提示這個問題，不過實際上程式依舊可以執行
 
 這時候就得看到 `__call()` 和 `__callStatic()` 這兩個魔術方法了！我們先來看看 `__callStatic()`
 
@@ -329,3 +329,106 @@ trait ForwardsCalls
 }
 ```
 
+這個 trait 最主要做的事情，就是 `return $object->{$method}(...$parameters);`，將收到的函式往下一個類別同名的函式丟過去。
+
+所以 `Illuminate\Database\Eloquent\Model` 是怎麼利用這個函式的呢？我們來看看 `$this->forwardCallTo($this->newQuery(), $method, $parameters);` 裡面的 `$this->newQuery()` 實作
+
+```php
+/**
+ * Get a new query builder for the model's table.
+ *
+ * @return \Illuminate\Database\Eloquent\Builder
+ */
+public function newQuery()
+{
+    return $this->registerGlobalScopes($this->newQueryWithoutScopes());
+}
+```
+
+這兩個函式的邏輯套疊比較複雜，不過從註解我們可以看出，最後所回傳的是 `\Illuminate\Database\Eloquent\Builder` 這個物件。
+
+看起來這個物件應該會有我們想要找到的 `find` 函式實作？我們搜尋看看確實有：
+
+```php
+/**
+ * Find a model by its primary key.
+ *
+ * @param  mixed  $id
+ * @param  array  $columns
+ * @return \Illuminate\Database\Eloquent\Model|\Illuminate\Database\Eloquent\Collection|static[]|static|null
+ */
+public function find($id, $columns = ['*'])
+{
+    if (is_array($id) || $id instanceof Arrayable) {
+        return $this->findMany($id, $columns);
+    }
+
+    return $this->whereKey($id)->first($columns);
+}
+```
+
+前面是針對傳入 array 的方式所做的，也就是官網所說的 `$flights = App\Flight::find([1, 2, 3]);` 這種用法。
+
+如果是像之前所麽所想探討的 `User::find(1);` 那就會進入到 `$this->whereKey($id)->first($columns)` 這串函式
+
+我們先看看 `whereKey()` 的實作
+
+```php
+/**
+ * Add a where clause on the primary key to the query.
+ *
+ * @param  mixed  $id
+ * @return $this
+ */
+public function whereKey($id)
+{
+    if (is_array($id) || $id instanceof Arrayable) {
+        $this->query->whereIn($this->model->getQualifiedKeyName(), $id);
+
+        return $this;
+    }
+
+    return $this->where($this->model->getQualifiedKeyName(), '=', $id);
+}
+```
+
+前面也是針對陣列情況的過濾，以我們的狀況，會運作的是 `$this->where($this->model->getQualifiedKeyName(), '=', $id);` 這段程式
+
+根據名稱我們可以先推測，這邊應該是先利用某個時間點建立的 `$this->model` 然後 `getQualifiedKeyName()` 取出 id 的名稱（預設很可能就是 `id`），最後利用 `$this->where()` 來對資料庫進行取值。
+
+我們往下看看這樣的推測是否正確，先看 `getQualifiedKeyName()`
+
+```php
+/**
+ * Get the table qualified key name.
+ *
+ * @return string
+ */
+public function getQualifiedKeyName()
+{
+    return $this->qualifyColumn($this->getKeyName());
+}
+```
+
+然後往下看 `qualifyColumn()` 
+
+```php
+/**
+ * Qualify the given column name by the model's table.
+ *
+ * @param  string  $column
+ * @return string
+ */
+public function qualifyColumn($column)
+{
+    if (Str::contains($column, '.')) {
+        return $column;
+    }
+
+    return $this->getTable().'.'.$column;
+}
+```
+
+和 `getKeyName()`
+
+```
