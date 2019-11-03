@@ -431,4 +431,16 @@ public function qualifyColumn($column)
 
 和 `getKeyName()`
 
+```php
+/**
+ * Get the primary key for the model.
+ *
+ * @return string
+ */
+public function getKeyName()
+{
+    return $this->primaryKey;
+}
 ```
+
+繼續看下去不意外的，`protected $primaryKey = 'id';` 
