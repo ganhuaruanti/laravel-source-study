@@ -427,4 +427,111 @@ public static function exists($array, $key)
 }
 ```
 
-這邊應該是為了
+這邊應該是為了解決如果輸入值是某個實作 PHP 提供的 `ArrayAccess` 介面，不是 PHP 原生的陣列物件，那麼無法用 `array_key_exists()` 的問題。
+
+看完之後，我們來看看 `accessible()`
+
+```php
+/**
+ * Determine whether the given value is array accessible.
+ *
+ * @param  mixed  $value
+ * @return bool
+ */
+public static function accessible($value)
+{
+    return is_array($value) || $value instanceof ArrayAccess;
+}
+```
+
+兩個都是 PHP 原生語法，就不繼續追蹤下去了。
+
+## `Arr::last()`
+
+```php
+/**
+ * Return the last element in an array passing a given truth test.
+ *
+ * @param  array  $array
+ * @param  callable|null  $callback
+ * @param  mixed  $default
+ * @return mixed
+ */
+public static function last($array, callable $callback = null, $default = null)
+{
+    if (is_null($callback)) {
+        return empty($array) ? value($default) : end($array);
+    }
+
+    return static::first(array_reverse($array, true), $callback, $default);
+}
+```
+
+沒想到竟然用了 `array_reverse()`。
+
+## `Arr::only()`
+
+```php
+/**
+ * Get a subset of the items from the given array.
+ *
+ * @param  array  $array
+ * @param  array|string  $keys
+ * @return array
+ */
+public static function only($array, $keys)
+{
+    return array_intersect_key($array, array_flip((array) $keys));
+}
+```
+
+很簡短的作法，不過看懂了之後，會覺得很有巧思。
+
+## `Arr::pluck()`
+
+```php
+/**
+ * Pluck an array of values from an array.
+ *
+ * @param  array  $array
+ * @param  string|array  $value
+ * @param  string|array|null  $key
+ * @return array
+ */
+public static function pluck($array, $value, $key = null)
+{
+    $results = [];
+
+    [$value, $key] = static::explodePluckParameters($value, $key);
+
+    foreach ($array as $item) {
+        $itemValue = data_get($item, $value);
+
+        // If the key is "null", we will just append the value to the array and keep
+        // looping. Otherwise we will key the array using the value of the key we
+        // received from the developer. Then we'll return the final array form.
+        if (is_null($key)) {
+            $results[] = $itemValue;
+        } else {
+            $itemKey = data_get($item, $key);
+
+            if (is_object($itemKey) && method_exists($itemKey, '__toString')) {
+                $itemKey = (string) $itemKey;
+            }
+
+            $results[$itemKey] = $itemValue;
+        }
+    }
+
+    return $results;
+}
+```
+
+
+
+
+
+
+
+
+
