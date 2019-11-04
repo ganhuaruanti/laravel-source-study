@@ -16,7 +16,7 @@ class Arr
 
 裡面有六百多行，顯然不是可以一次閱讀完的份量，我們下面依據官網的列出的順序，一個一個閱讀這些函式實作的方式
 
-## `Arr::add`
+## `Arr::add()`
 
 ```php
 /**
@@ -361,4 +361,70 @@ public static function flatten($array, $depth = INF)
 
 ## `Arr::forget()`
 
-前面 `except()` 時有看過了，這邊就不重貼了。
+前面 `except()` 時有看過了，這邊不再贅述。
+
+## `Arr::get()`
+
+前面 `add()` 時有看過了，這邊不再贅述。
+
+## `Arr::has()`
+
+```php
+/**
+ * Check if an item or items exist in an array using "dot" notation.
+ *
+ * @param  \ArrayAccess|array  $array
+ * @param  string|array  $keys
+ * @return bool
+ */
+public static function has($array, $keys)
+{
+    $keys = (array) $keys;
+
+    if (! $array || $keys === []) {
+        return false;
+    }
+
+    foreach ($keys as $key) {
+        $subKeyArray = $array;
+
+        if (static::exists($array, $key)) {
+            continue;
+        }
+
+        foreach (explode('.', $key) as $segment) {
+            if (static::accessible($subKeyArray) && static::exists($subKeyArray, $segment)) {
+                $subKeyArray = $subKeyArray[$segment];
+            } else {
+                return false;
+            }
+        }
+    }
+
+    return true;
+}
+```
+
+可以看出實作上用到了 `exists()` 和 `accessible()` 我們來看看這兩個函式
+
+首先看 `exists()`
+
+```php
+/**
+ * Determine if the given key exists in the provided array.
+ *
+ * @param  \ArrayAccess|array  $array
+ * @param  string|int  $key
+ * @return bool
+ */
+public static function exists($array, $key)
+{
+    if ($array instanceof ArrayAccess) {
+        return $array->offsetExists($key);
+    }
+
+    return array_key_exists($key, $array);
+}
+```
+
+這邊應該是為了
