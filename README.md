@@ -17,7 +17,7 @@
   * [控制器](/controllers.md)
 * 輔助方法
   * [輔助方法概觀](/helpers/index.md)
-  * 陣列
+  * [陣列](/helpers/array.md)
   * 物件
   * 路徑
   * 字串
