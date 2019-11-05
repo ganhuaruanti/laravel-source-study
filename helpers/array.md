@@ -493,7 +493,6 @@ pluck（拔出）這個字我比較陌生，所以我會從官網先看看實作
 
     The Arr::pluck method retrieves all of the values for a given key from an array:
 
-    ```php
     use Illuminate\Support\Arr;
 
     $array = [
@@ -504,7 +503,18 @@ pluck（拔出）這個字我比較陌生，所以我會從官網先看看實作
     $names = Arr::pluck($array, 'developer.name');
 
     // ['Taylor', 'Abigail']
-    ```php
+    
+    You may also specify how you wish the resulting list to be keyed:
+
+    use Illuminate\Support\Arr;
+
+    $names = Arr::pluck($array, 'developer.name', 'developer.id');
+
+    // [1 => 'Taylor', 2 => 'Abigail']
+
+這樣我們大概有點理解，看起來就是從原本的陣列中，依據傳入的 key 拔出對應的 value。
+
+我們往下看看實作
 
 ```php
 /**
@@ -543,6 +553,85 @@ public static function pluck($array, $value, $key = null)
     return $results;
 }
 ```
+
+第一個我們會遇到的是 `explodePluckParameters()` 我們來看看其實作
+
+```php
+/**
+ * Explode the "value" and "key" arguments passed to "pluck".
+ *
+ * @param  string|array  $value
+ * @param  string|array|null  $key
+ * @return array
+ */
+protected static function explodePluckParameters($value, $key)
+{
+    $value = is_string($value) ? explode('.', $value) : $value;
+
+    $key = is_null($key) || is_array($key) ? $key : explode('.', $key);
+
+    return [$value, $key];
+}
+```
+
+看完怎麼剖析傳入參數後，我們來看看 `data_get()`
+
+```php
+if (! function_exists('data_get')) {
+    /**
+     * Get an item from an array or object using "dot" notation.
+     *
+     * @param  mixed   $target
+     * @param  string|array|int  $key
+     * @param  mixed   $default
+     * @return mixed
+     */
+    function data_get($target, $key, $default = null)
+    {
+        if (is_null($key)) {
+            return $target;
+        }
+
+        $key = is_array($key) ? $key : explode('.', $key);
+
+        while (! is_null($segment = array_shift($key))) {
+            if ($segment === '*') {
+                if ($target instanceof Collection) {
+                    $target = $target->all();
+                } elseif (! is_array($target)) {
+                    return value($default);
+                }
+
+                $result = [];
+
+                foreach ($target as $item) {
+                    $result[] = data_get($item, $key);
+                }
+
+                return in_array('*', $key) ? Arr::collapse($result) : $result;
+            }
+
+            if (Arr::accessible($target) && Arr::exists($target, $segment)) {
+                $target = $target[$segment];
+            } elseif (is_object($target) && isset($target->{$segment})) {
+                $target = $target->{$segment};
+            } else {
+                return value($default);
+            }
+        }
+
+        return $target;
+    }
+}
+```
+
+
+
+
+
+
+
+
 
 
 
