@@ -489,6 +489,23 @@ public static function only($array, $keys)
 
 ## `Arr::pluck()`
 
+pluck（拔出）這個字我比較陌生，所以我會從官網先看看實作的目標
+
+    The Arr::pluck method retrieves all of the values for a given key from an array:
+
+    ```php
+    use Illuminate\Support\Arr;
+
+    $array = [
+        ['developer' => ['id' => 1, 'name' => 'Taylor']],
+        ['developer' => ['id' => 2, 'name' => 'Abigail']],
+    ];
+
+    $names = Arr::pluck($array, 'developer.name');
+
+    // ['Taylor', 'Abigail']
+    ```php
+
 ```php
 /**
  * Pluck an array of values from an array.
