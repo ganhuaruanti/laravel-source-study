@@ -109,8 +109,6 @@ if (! function_exists('value')) {
 }
 ```
 
-其實也沒什麼好說明的，很簡單的實作。
-
 再來我們看 `set()`
 
 ```php
@@ -625,8 +623,28 @@ if (! function_exists('data_get')) {
 }
 ```
 
+## `Arr::prepend()`
 
+```php
+/**
+ * Push an item onto the beginning of an array.
+ *
+ * @param  array  $array
+ * @param  mixed  $value
+ * @param  mixed  $key
+ * @return array
+ */
+public static function prepend($array, $value, $key = null)
+{
+    if (is_null($key)) {
+        array_unshift($array, $value);
+    } else {
+        $array = [$key => $value] + $array;
+    }
 
+    return $array;
+}
+```
 
 
 
