@@ -18,6 +18,8 @@ class Arr
 
 ## `Arr::add()`
 
+在陣列裡面加上新的物件，支援所謂的「"dot" notation」，也就是
+
 ```php
 /**
  * Add an element to an array using "dot" notation if it doesn't exist.
