@@ -173,3 +173,16 @@ public static function finish($value, $cap)
     return preg_replace('/(?:'.$quoted.')+$/u', '', $value).$cap;
 }
 ```
+
+看到這麼複雜的實作方式，感覺很有疑問，不過看官網說明也沒看出什麼端倪。
+
+這時候，我們可以看看該函式對應的測試，找看看有沒有什麼線索：
+
+```php
+public function testFinish()
+{
+    $this->assertEquals('abbc', Str::finish('ab', 'bc'));
+    $this->assertEquals('abbc', Str::finish('abbcbc', 'bc'));
+    $this->assertEquals('abcbbc', Str::finish('abcbbcbc', 'bc'));
+}
+```
