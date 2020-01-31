@@ -402,3 +402,131 @@ public static function replaceArray($search, array $replace, $subject)
 }
 ```
 
+## `Str::replaceFirst()`
+
+```php
+/**
+ * Replace the first occurrence of a given value in the string.
+ *
+ * @param  string  $search
+ * @param  string  $replace
+ * @param  string  $subject
+ * @return string
+ */
+public static function replaceFirst($search, $replace, $subject)
+{
+    if ($search == '') {
+        return $subject;
+    }
+
+    $position = strpos($subject, $search);
+
+    if ($position !== false) {
+        return substr_replace($subject, $replace, $position, strlen($search));
+    }
+
+    return $subject;
+}
+```
+
+## `Str::replaceLast()`
+
+```php
+/**
+ * Replace the last occurrence of a given value in the string.
+ *
+ * @param  string  $search
+ * @param  string  $replace
+ * @param  string  $subject
+ * @return string
+ */
+public static function replaceLast($search, $replace, $subject)
+{
+    $position = strrpos($subject, $search);
+
+    if ($position !== false) {
+        return substr_replace($subject, $replace, $position, strlen($search));
+    }
+
+    return $subject;
+}
+```
+
+## `Str::singular()`
+
+```php
+/**
+ * Get the singular form of an English word.
+ *
+ * @param  string  $value
+ * @return string
+ */
+public static function singular($value)
+{
+    return Pluralizer::singular($value);
+}
+```
+
+## `Str::slug()`
+
+```php
+/**
+ * Generate a URL friendly "slug" from a given string.
+ *
+ * @param  string  $title
+ * @param  string  $separator
+ * @param  string|null  $language
+ * @return string
+ */
+public static function slug($title, $separator = '-', $language = 'en')
+{
+    $title = $language ? static::ascii($title, $language) : $title;
+
+    // Convert all dashes/underscores into separator
+    $flip = $separator === '-' ? '_' : '-';
+
+    $title = preg_replace('!['.preg_quote($flip).']+!u', $separator, $title);
+
+    // Replace @ with the word 'at'
+    $title = str_replace('@', $separator.'at'.$separator, $title);
+
+    // Remove all characters that are not the separator, letters, numbers, or whitespace.
+    $title = preg_replace('![^'.preg_quote($separator).'\pL\pN\s]+!u', '', static::lower($title));
+
+    // Replace all separator characters and whitespace by a single separator
+    $title = preg_replace('!['.preg_quote($separator).'\s]+!u', $separator, $title);
+
+    return trim($title, $separator);
+}
+```
+
+## `Str::snake()`
+
+```php
+/**
+ * Convert a string to snake case.
+ *
+ * @param  string  $value
+ * @param  string  $delimiter
+ * @return string
+ */
+public static function snake($value, $delimiter = '_')
+{
+    $key = $value;
+
+    if (isset(static::$snakeCache[$key][$delimiter])) {
+        return static::$snakeCache[$key][$delimiter];
+    }
+
+    if (! ctype_lower($value)) {
+        $value = preg_replace('/\s+/u', '', ucwords($value));
+
+        $value = static::lower(preg_replace('/(.)(?=[A-Z])/u', '$1'.$delimiter, $value));
+    }
+
+    return static::$snakeCache[$key][$delimiter] = $value;
+}
+```
+
+## `Str::start()`
+
