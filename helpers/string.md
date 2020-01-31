@@ -228,3 +228,90 @@ public static function is($pattern, $value)
     return false;
 }
 ```
+
+## `Str::kebab()`
+
+```php
+/**
+ * Convert a string to kebab case.
+ *
+ * @param  string  $value
+ * @return string
+ */
+public static function kebab($value)
+{
+    return static::snake($value, '-');
+}
+```
+
+```php
+/**
+ * Convert a string to snake case.
+ *
+ * @param  string  $value
+ * @param  string  $delimiter
+ * @return string
+ */
+public static function snake($value, $delimiter = '_')
+{
+    $key = $value;
+
+    if (isset(static::$snakeCache[$key][$delimiter])) {
+        return static::$snakeCache[$key][$delimiter];
+    }
+
+    if (! ctype_lower($value)) {
+        $value = preg_replace('/\s+/u', '', ucwords($value));
+
+        $value = static::lower(preg_replace('/(.)(?=[A-Z])/u', '$1'.$delimiter, $value));
+    }
+
+    return static::$snakeCache[$key][$delimiter] = $value;
+}
+```
+
+## `Str::limit()`
+
+```php
+/**
+ * Limit the number of characters in a string.
+ *
+ * @param  string  $value
+ * @param  int     $limit
+ * @param  string  $end
+ * @return string
+ */
+public static function limit($value, $limit = 100, $end = '...')
+{
+    if (mb_strwidth($value, 'UTF-8') <= $limit) {
+        return $value;
+    }
+
+    return rtrim(mb_strimwidth($value, 0, $limit, '', 'UTF-8')).$end;
+}
+```
+
+## `Str::orderedUuid()`
+
+```php
+/**
+ * Generate a time-ordered UUID (version 4).
+ *
+ * @return \Ramsey\Uuid\UuidInterface
+ */
+public static function orderedUuid()
+{
+    $factory = new UuidFactory;
+
+    $factory->setRandomGenerator(new CombGenerator(
+        $factory->getRandomGenerator(),
+        $factory->getNumberConverter()
+    ));
+
+    $factory->setCodec(new TimestampFirstCombCodec(
+        $factory->getUuidBuilder()
+    ));
+
+    return $factory->uuid4();
+}
+```
