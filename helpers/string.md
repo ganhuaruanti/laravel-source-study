@@ -315,3 +315,39 @@ public static function orderedUuid()
     return $factory->uuid4();
 }
 ```
+
+## `Str::plural()`
+
+```php
+/**
+ * Get the plural form of an English word.
+ *
+ * @param  string  $value
+ * @param  int     $count
+ * @return string
+ */
+public static function plural($value, $count = 2)
+{
+    return Pluralizer::plural($value, $count);
+}
+```
+
+```php
+/**
+ * Get the plural form of an English word.
+ *
+ * @param  string  $value
+ * @param  int     $count
+ * @return string
+ */
+public static function plural($value, $count = 2)
+{
+    if ((int) abs($count) === 1 || static::uncountable($value)) {
+        return $value;
+    }
+
+    $plural = Inflector::pluralize($value);
+
+    return static::matchCase($plural, $value);
+}
+```
