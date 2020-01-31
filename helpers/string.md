@@ -351,3 +351,54 @@ public static function plural($value, $count = 2)
     return static::matchCase($plural, $value);
 }
 ```
+
+## `Str::random()`
+
+```php
+/**
+ * Generate a more truly "random" alpha-numeric string.
+ *
+ * @param  int  $length
+ * @return string
+ */
+public static function random($length = 16)
+{
+    $string = '';
+
+    while (($len = strlen($string)) < $length) {
+        $size = $length - $len;
+
+        $bytes = random_bytes($size);
+
+        $string .= substr(str_replace(['/', '+', '='], '', base64_encode($bytes)), 0, $size);
+    }
+
+    return $string;
+}
+```
+
+## `Str::replaceArray()`
+
+```php
+/**
+ * Replace a given value in the string sequentially with an array.
+ *
+ * @param  string  $search
+ * @param  array   $replace
+ * @param  string  $subject
+ * @return string
+ */
+public static function replaceArray($search, array $replace, $subject)
+{
+    $segments = explode($search, $subject);
+
+    $result = array_shift($segments);
+
+    foreach ($segments as $segment) {
+        $result .= (array_shift($replace) ?? $search).$segment;
+    }
+
+    return $result;
+}
+```
+
