@@ -648,15 +648,236 @@ public static function prepend($array, $value, $key = null)
 }
 ```
 
+## `Arr::pull()`
 
+```php
+/**
+ * Get a value from the array, and remove it.
+ *
+ * @param  array   $array
+ * @param  string  $key
+ * @param  mixed   $default
+ * @return mixed
+ */
+public static function pull(&$array, $key, $default = null)
+{
+    $value = static::get($array, $key, $default);
 
+    static::forget($array, $key);
 
+    return $value;
+}
+```
 
+```php
+/**
+ * Remove one or many array items from a given array using "dot" notation.
+ *
+ * @param  array  $array
+ * @param  array|string  $keys
+ * @return void
+ */
+public static function forget(&$array, $keys)
+{
+    $original = &$array;
 
+    $keys = (array) $keys;
 
+    if (count($keys) === 0) {
+        return;
+    }
 
+    foreach ($keys as $key) {
+        // if the exact key exists in the top-level, remove it
+        if (static::exists($array, $key)) {
+            unset($array[$key]);
 
+            continue;
+        }
 
+        $parts = explode('.', $key);
+
+        // clean up before each pass
+        $array = &$original;
+
+        while (count($parts) > 1) {
+            $part = array_shift($parts);
+
+            if (isset($array[$part]) && is_array($array[$part])) {
+                $array = &$array[$part];
+            } else {
+                continue 2;
+            }
+        }
+
+        unset($array[array_shift($parts)]);
+    }
+}
+```
+
+## `Arr::random()`
+
+```php
+/**
+ * Get one or a specified number of random values from an array.
+ *
+ * @param  array  $array
+ * @param  int|null  $number
+ * @return mixed
+ *
+ * @throws \InvalidArgumentException
+ */
+public static function random($array, $number = null)
+{
+    $requested = is_null($number) ? 1 : $number;
+
+    $count = count($array);
+
+    if ($requested > $count) {
+        throw new InvalidArgumentException(
+            "You requested {$requested} items, but there are only {$count} items available."
+        );
+    }
+
+    if (is_null($number)) {
+        return $array[array_rand($array)];
+    }
+
+    if ((int) $number === 0) {
+        return [];
+    }
+
+    $keys = array_rand($array, $number);
+
+    $results = [];
+
+    foreach ((array) $keys as $key) {
+        $results[] = $array[$key];
+    }
+
+    return $results;
+}
+```
+
+## `Arr::set()`
+
+```php
+/**
+ * Set an array item to a given value using "dot" notation.
+ *
+ * If no key is given to the method, the entire array will be replaced.
+ *
+ * @param  array   $array
+ * @param  string  $key
+ * @param  mixed   $value
+ * @return array
+ */
+public static function set(&$array, $key, $value)
+{
+    if (is_null($key)) {
+        return $array = $value;
+    }
+
+    $keys = explode('.', $key);
+
+    while (count($keys) > 1) {
+        $key = array_shift($keys);
+
+        // If the key doesn't exist at this depth, we will just create an empty array
+        // to hold the next value, allowing us to create the arrays to hold final
+        // values at the correct depth. Then we'll keep digging into the array.
+        if (! isset($array[$key]) || ! is_array($array[$key])) {
+            $array[$key] = [];
+        }
+
+        $array = &$array[$key];
+    }
+
+    $array[array_shift($keys)] = $value;
+
+    return $array;
+}
+```
+
+## `Arr::sort()`
+
+```php
+/**
+ * Sort the array using the given callback or "dot" notation.
+ *
+ * @param  array  $array
+ * @param  callable|string|null  $callback
+ * @return array
+ */
+public static function sort($array, $callback = null)
+{
+    return Collection::make($array)->sortBy($callback)->all();
+}
+```
+
+## `Arr::sortRecursive()`
+
+```php
+/**
+ * Recursively sort an array by keys and values.
+ *
+ * @param  array  $array
+ * @return array
+ */
+public static function sortRecursive($array)
+{
+    foreach ($array as &$value) {
+        if (is_array($value)) {
+            $value = static::sortRecursive($value);
+        }
+    }
+
+    if (static::isAssoc($array)) {
+        ksort($array);
+    } else {
+        sort($array);
+    }
+
+    return $array;
+}
+```
+
+## `Arr::where()`
+
+```php
+/**
+ * Filter the array using the given callback.
+ *
+ * @param  array  $array
+ * @param  callable  $callback
+ * @return array
+ */
+public static function where($array, callable $callback)
+{
+    return array_filter($array, $callback, ARRAY_FILTER_USE_BOTH);
+}
+```
+
+## `Arr::wrap()`
+
+```php
+/**
+ * If the given value is not an array and not null, wrap it in one.
+ *
+ * @param  mixed  $value
+ * @return array
+ */
+public static function wrap($value)
+{
+    if (is_null($value)) {
+        return [];
+    }
+
+    return is_array($value) ? $value : [$value];
+}
+```
+
+到此 `Arr` 物件裡面的函式就結束了。
 
 
 
