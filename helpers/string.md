@@ -90,6 +90,86 @@ public static function studly($value)
 }
 ```
 
+## `Str::contains()`
 
+```php
+/**
+ * Determine if a given string contains a given substring.
+ *
+ * @param  string  $haystack
+ * @param  string|array  $needles
+ * @return bool
+ */
+public static function contains($haystack, $needles)
+{
+    foreach ((array) $needles as $needle) {
+        if ($needle !== '' && mb_strpos($haystack, $needle) !== false) {
+            return true;
+        }
+    }
 
+    return false;
+}
+```
 
+## `Str::containsAll()`
+
+```php
+/**
+ * Determine if a given string contains all array values.
+ *
+ * @param  string  $haystack
+ * @param  array  $needles
+ * @return bool
+ */
+public static function containsAll($haystack, array $needles)
+{
+    foreach ($needles as $needle) {
+        if (! static::contains($haystack, $needle)) {
+            return false;
+        }
+    }
+
+    return true;
+}
+```
+
+## `Str::endsWith()`
+
+```php
+/**
+ * Determine if a given string ends with a given substring.
+ *
+ * @param  string  $haystack
+ * @param  string|array  $needles
+ * @return bool
+ */
+public static function endsWith($haystack, $needles)
+{
+    foreach ((array) $needles as $needle) {
+        if (substr($haystack, -strlen($needle)) === (string) $needle) {
+            return true;
+        }
+    }
+
+    return false;
+}
+```
+
+## `Str::finish()`
+
+```php
+/**
+ * Cap a string with a single instance of a given value.
+ *
+ * @param  string  $value
+ * @param  string  $cap
+ * @return string
+ */
+public static function finish($value, $cap)
+{
+    $quoted = preg_quote($cap, '/');
+
+    return preg_replace('/(?:'.$quoted.')+$/u', '', $value).$cap;
+}
+```
