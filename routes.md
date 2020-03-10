@@ -196,7 +196,7 @@ public function match(Request $request)
 
 如果換了動詞就可以找到路徑的話，回傳 `MethodNotAllowedHttpException` 代表動詞出錯，不然就回傳 `NotFoundHttpException` 代表路由不存在。
 
-簡單的順過羅及隻後，我們在一個一個的看裡面實作的細節。
+簡單的順過邏輯之後，我們再一個一個的看裡面不同階段實作的細節。
 
 #### `get()`
 
